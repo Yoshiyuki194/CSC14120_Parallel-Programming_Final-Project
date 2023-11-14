@@ -4,3 +4,4 @@
 *.ptx
 *.cubin
 *.fatbin
+mini-dnn-cpp-master/build/

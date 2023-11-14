@@ -11,7 +11,6 @@
 #include "src/layer.h"
 #include "src/layer/conv.h"
 #include "src/layer/fully_connected.h"
-#include "src/layer/ave_pooling.h"
 #include "src/layer/max_pooling.h"
 #include "src/layer/relu.h"
 #include "src/layer/sigmoid.h"
@@ -27,7 +26,7 @@
 
 int main() {
   // data
-  MNIST dataset("../data/FashionMnist/");
+  MNIST dataset("../data/");
   dataset.read();
   int n_train = dataset.train_data.cols();
   int dim_in = dataset.train_data.rows();
@@ -35,10 +34,10 @@ int main() {
   std::cout << "Fashion MNIST test number: " << dataset.test_labels.cols() << std::endl;
   // dnn
   Network dnn;
-  Layer* conv1 = new Conv(1, 6, 1, 28, 28, 6, 5, 5, 1, 2, 2, 28, 28);
-  Layer* pool1 = new MaxPooling(6, 28, 28, 6, 2, 2, 1, 6, 14, 14, 6);
-  Layer* conv2 = new Conv(6, 16, 6, 14, 14, 16, 5, 5, 1, 2, 2, 10, 10);
-  Layer* pool2 = new MaxPooling(16, 10, 10, 16, 2, 2, 1, 16, 5, 5, 16);
+  Layer* conv1 = new Conv(1, 28, 28, 6, 5, 5, 1, 2, 2);
+  Layer* pool1 = new MaxPooling(6, 28, 28, 2, 2, 1);
+  Layer* conv2 = new Conv(6, 14, 14, 16, 5, 5, 1);
+  Layer* pool2 = new MaxPooling(16, 10, 10, 2, 2, 1);
   Layer* fc3 = new FullyConnected(pool2->output_dim(), 120);
   Layer* fc4 = new FullyConnected(120, 84);
   Layer* fc5 = new FullyConnected(84, 10);
@@ -65,7 +64,7 @@ int main() {
   // train & test
   SGD opt(0.001, 5e-4, 0.9, true);
   // SGD opt(0.001);
-  const int n_epoch = 5;
+  const int n_epoch = 1;
   const int batch_size = 128;
   for (int epoch = 0; epoch < n_epoch; epoch ++) {
     shuffle_data(dataset.train_data, dataset.train_labels);
