@@ -30,14 +30,14 @@ int main() {
   dataset.read();
   int n_train = dataset.train_data.cols();
   int dim_in = dataset.train_data.rows();
-  std::cout << "Fashion MNIST train number: " << n_train << std::endl;
-  std::cout << "Fashion MNIST test number: " << dataset.test_labels.cols() << std::endl;
+  std::cout << "mnist train number: " << n_train << std::endl;
+  std::cout << "mnist test number: " << dataset.test_labels.cols() << std::endl;
   // dnn
   Network dnn;
   Layer* conv1 = new Conv(1, 28, 28, 6, 5, 5, 1, 2, 2);
-  Layer* pool1 = new MaxPooling(6, 28, 28, 2, 2, 1);
-  Layer* conv2 = new Conv(6, 14, 14, 16, 5, 5, 1);
-  Layer* pool2 = new MaxPooling(16, 10, 10, 2, 2, 1);
+  Layer* pool1 = new MaxPooling(6, 28, 28, 2, 2, 2);
+  Layer* conv2 = new Conv(6, 14, 14, 16, 5, 5, 1, 2, 2);
+  Layer* pool2 = new MaxPooling(16, 10, 10, 2, 2, 2);
   Layer* fc3 = new FullyConnected(pool2->output_dim(), 120);
   Layer* fc4 = new FullyConnected(120, 84);
   Layer* fc5 = new FullyConnected(84, 10);
@@ -64,7 +64,7 @@ int main() {
   // train & test
   SGD opt(0.001, 5e-4, 0.9, true);
   // SGD opt(0.001);
-  const int n_epoch = 1;
+  const int n_epoch = 5;
   const int batch_size = 128;
   for (int epoch = 0; epoch < n_epoch; epoch ++) {
     shuffle_data(dataset.train_data, dataset.train_labels);
@@ -98,4 +98,3 @@ int main() {
   }
   return 0;
 }
-
