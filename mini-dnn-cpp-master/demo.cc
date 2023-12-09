@@ -22,9 +22,10 @@
 #include "src/network.h"
 #include "src/optimizer.h"
 #include "src/optimizer/sgd.h"
+#include "src/GpuTimer.h"
 
-
-int main() {
+int main()
+{
   // data
   MNIST dataset("../data/");
   dataset.read();
@@ -34,18 +35,18 @@ int main() {
   std::cout << "mnist test number: " << dataset.test_labels.cols() << std::endl;
   // dnn
   Network dnn;
-  Layer* conv1 = new Conv(1, 28, 28, 6, 5, 5, 1, 2, 2);
-  Layer* pool1 = new MaxPooling(6, 28, 28, 2, 2, 2);
-  Layer* conv2 = new Conv(6, 14, 14, 16, 5, 5, 1, 2, 2);
-  Layer* pool2 = new MaxPooling(16, 10, 10, 2, 2, 2);
-  Layer* fc3 = new FullyConnected(pool2->output_dim(), 120);
-  Layer* fc4 = new FullyConnected(120, 84);
-  Layer* fc5 = new FullyConnected(84, 10);
-  Layer* relu1 = new ReLU;
-  Layer* relu2 = new ReLU;
-  Layer* relu3 = new ReLU;
-  Layer* relu4 = new ReLU;
-  Layer* softmax = new Softmax;
+  Layer *conv1 = new Conv(1, 28, 28, 6, 5, 5, 1, 2, 2, 1);
+  Layer *pool1 = new MaxPooling(6, 28, 28, 2, 2, 2);
+  Layer *conv2 = new Conv(6, 14, 14, 16, 5, 5, 1, 2, 2, 1);
+  Layer *pool2 = new MaxPooling(16, 10, 10, 2, 2, 2);
+  Layer *fc3 = new FullyConnected(pool2->output_dim(), 120);
+  Layer *fc4 = new FullyConnected(120, 84);
+  Layer *fc5 = new FullyConnected(84, 10);
+  Layer *relu1 = new ReLU;
+  Layer *relu2 = new ReLU;
+  Layer *relu3 = new ReLU;
+  Layer *relu4 = new ReLU;
+  Layer *softmax = new Softmax;
   dnn.add_layer(conv1);
   dnn.add_layer(relu1);
   dnn.add_layer(pool1);
@@ -59,36 +60,44 @@ int main() {
   dnn.add_layer(fc5);
   dnn.add_layer(softmax);
   // loss
-  Loss* loss = new CrossEntropy;
+  Loss *loss = new CrossEntropy;
   dnn.add_loss(loss);
   // train & test
   SGD opt(0.001, 5e-4, 0.9, true);
   // SGD opt(0.001);
   const int n_epoch = 5;
   const int batch_size = 128;
-  for (int epoch = 0; epoch < n_epoch; epoch ++) {
+  for (int epoch = 0; epoch < n_epoch; epoch++)
+  {
+    GpuTimer timer;
+    timer.Start();
     shuffle_data(dataset.train_data, dataset.train_labels);
-    for (int start_idx = 0; start_idx < n_train; start_idx += batch_size) {
+    for (int start_idx = 0; start_idx < n_train; start_idx += batch_size)
+    {
       int ith_batch = start_idx / batch_size;
       Matrix x_batch = dataset.train_data.block(0, start_idx, dim_in,
-                                    std::min(batch_size, n_train - start_idx));
+                                                std::min(batch_size, n_train - start_idx));
       Matrix label_batch = dataset.train_labels.block(0, start_idx, 1,
-                                    std::min(batch_size, n_train - start_idx));
+                                                      std::min(batch_size, n_train - start_idx));
       Matrix target_batch = one_hot_encode(label_batch, 10);
-      if (false && ith_batch % 10 == 1) {
+      if (false && ith_batch % 10 == 1)
+      {
         std::cout << ith_batch << "-th grad: " << std::endl;
         dnn.check_gradient(x_batch, target_batch, 10);
       }
       dnn.forward(x_batch);
       dnn.backward(x_batch, target_batch);
       // display
-      if (ith_batch % 50 == 0) {
+      if (ith_batch % 50 == 0)
+      {
         std::cout << ith_batch << "-th batch, loss: " << dnn.get_loss()
-        << std::endl;
+                  << std::endl;
       }
       // optimize
       dnn.update(opt);
     }
+    timer.Stop();
+    printf("Training Time: %.3f ms\n", timer.Elapsed()
     // test
     dnn.forward(dataset.test_data);
     float acc = compute_accuracy(dnn.output(), dataset.test_labels);

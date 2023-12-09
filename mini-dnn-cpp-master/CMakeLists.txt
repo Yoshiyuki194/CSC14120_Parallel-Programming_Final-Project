@@ -10,4 +10,3 @@ add_subdirectory(src)
 add_executable(demo ${DIR_SRCS})
 # 添加链接库
 target_link_libraries(demo MiniDNNLib)
-
