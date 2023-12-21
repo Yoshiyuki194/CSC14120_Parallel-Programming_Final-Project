@@ -1,16 +1,5 @@
 #ifndef SRC_NETWORK_H_
 #define SRC_NETWORK_H_
-#define CHECK(call)\
-{\
-	const cudaError_t error = call;\
-	if (error != cudaSuccess)\
-	{\
-		fprintf(stderr, "Error: %s:%d, ", __FILE__, __LINE__);\
-		fprintf(stderr, "code: %d, reason: %s\n", error,\
-				cudaGetErrorString(error));\
-		exit(EXIT_FAILURE);\
-	}\
-}
 
 #include <stdlib.h>
 #include <vector>
@@ -22,41 +11,41 @@
 class Network
 {
 private:
-  std::vector<Layer *> layers; // layer pointers
-  Loss *loss;                  // loss pointer
+    std::vector<Layer *> layers; // layer pointers
+    Loss *loss;                  // loss pointer
 
 public:
-  Network() : loss(NULL) {}
-  ~Network()
-  {
-    for (int i = 0; i < layers.size(); i++)
+    Network() : loss(NULL) {}
+    ~Network()
     {
-      delete layers[i];
+        for (int i = 0; i < layers.size(); i++)
+        {
+            delete layers[i];
+        }
+        if (loss)
+        {
+            delete loss;
+        }
     }
-    if (loss)
-    {
-      delete loss;
-    }
-  }
 
-  void add_layer(Layer *layer) { layers.push_back(layer); }
-  void add_loss(Loss *loss_in) { loss = loss_in; }
+    void add_layer(Layer *layer) { layers.push_back(layer); }
+    void add_loss(Loss *loss_in) { loss = loss_in; }
 
-  void forward(const Matrix &input);
-  void backward(const Matrix &input, const Matrix &target);
-  void update(Optimizer &opt);
+    void forward(const Matrix &input);
+    void backward(const Matrix &input, const Matrix &target);
+    void update(Optimizer &opt);
 
-  const Matrix &output() { return layers.back()->output(); }
-  float get_loss() { return loss->output(); }
-  /// Get the serialized layer parameters
-  std::vector<std::vector<float>> get_parameters() const;
-  /// Set the layer parameters
-  void set_parameters(const std::vector<std::vector<float>> &param);
-  /// Get the serialized derivatives of layer parameters
-  std::vector<std::vector<float>> get_derivatives() const;
-  /// Debugging tool to check parameter gradients
-  void check_gradient(const Matrix &input, const Matrix &target, int n_points,
-                      int seed = -1);
+    const Matrix &output() { return layers.back()->output(); }
+    float get_loss() { return loss->output(); }
+    /// Get the serialized layer parameters
+    std::vector<std::vector<float>> get_parameters() const;
+    /// Set the layer parameters
+    void set_parameters(const std::vector<std::vector<float>> &param);
+    /// Get the serialized derivatives of layer parameters
+    std::vector<std::vector<float>> get_derivatives() const;
+    /// Debugging tool to check parameter gradients
+    void check_gradient(const Matrix &input, const Matrix &target, int n_points,
+                        int seed = -1);
 };
 
 #endif // SRC_NETWORK_H_

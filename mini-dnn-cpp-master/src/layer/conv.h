@@ -1,15 +1,26 @@
 #ifndef SRC_LAYER_CONV_H_
 #define SRC_LAYER_CONV_H_
+#define CHECK(call)\
+{\
+	const cudaError_t error = call;\
+	if (error != cudaSuccess)\
+	{\
+		fprintf(stderr, "Error: %s:%d, ", __FILE__, __LINE__);\
+		fprintf(stderr, "code: %d, reason: %s\n", error,\
+				cudaGetErrorString(error));\
+		exit(EXIT_FAILURE);\
+	}\
+}
 
 #include <vector>
-#include "../layer.h"
 #include <cuda_runtime.h>
+#include "../layer.h"
 
 class Conv : public Layer
 {
 private:
     bool gpu = false;
-    dim3 block_size = dim3(256); // default
+    dim3 block_size = dim3(32, 32); // default
 
     const int dim_in;
     int dim_out;
@@ -39,12 +50,12 @@ private:
 public:
     Conv(int channel_in, int height_in, int width_in, int channel_out,
          int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
-         int pad_h = 0, int gpu = false, dim3 block_size = dim3(256)) : 
+         int pad_h = 0, int gpu = false, int block_size_x = 32, int block_size_y = 32) : 
             dim_in(channel_in * height_in * width_in),
             channel_in(channel_in), height_in(height_in), width_in(width_in),
             channel_out(channel_out), height_kernel(height_kernel),
             width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h),
-            gpu(gpu), block_size(dim3(block_size))
+            gpu(gpu), block_size(dim3(block_size_x, block_size_y))
 {
         init();
     }

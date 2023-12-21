@@ -18,38 +18,6 @@ void Conv::init()
     // std::cout << weight.colwise().sum() + bias.transpose() << std::endl;
 }
 
-__global__ void im2col_kernel(const float* image, float* data_col, int height_in, int width_in, int channel_in, int height_kernel, int width_kernel, int height_out, int width_out, int stride, int pad_h, int pad_w)
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int hw_in = height_in * width_in;
-    int hw_kernel = height_kernel * width_kernel;
-    int hw_out = height_out * width_out;
-
-    if (idx < hw_out * hw_kernel * channel_in) {
-        int c = idx / (hw_out * hw_kernel);
-        int i = (idx % (hw_out * hw_kernel)) / hw_kernel;
-        int j = idx % hw_kernel;
-
-        // ... rest of the code ...
-        int step_h = i / width_out;
-        int step_w = i % width_out;
-        int start_idx = step_h * width_in * stride + step_w * stride; // left-top idx of window
-        int cur_col = start_idx % width_in + j % width_kernel - pad_w; // col after padding
-        int cur_row = start_idx / width_in + j / width_kernel - pad_h;
-        if (cur_col < 0 || cur_col >= width_in || cur_row < 0 ||
-            cur_row >= height_in)
-        {
-            data_col[idx] = 0;
-        }
-        else
-        {
-            // int pick_idx = start_idx + (j / width_kernel) * width_in + j % width_kernel;
-            int pick_idx = cur_row * width_in + cur_col;
-            data_col[idx] = image[c * hw_in + pick_idx]; // pick which pixel
-        }
-    }
-}
-
 // im2col, used for bottom
 // image size: Vector (height_in * width_in * channel_in)
 // data_col size: Matrix (hw_out, hw_kernel * channel_in)
@@ -60,63 +28,46 @@ void Conv::im2col(const Vector &image, Matrix &data_col)
     int hw_out = height_out * width_out;
     // im2col
     data_col.resize(hw_out, hw_kernel * channel_in);
-    if (gpu == false)
+    for (int c = 0; c < channel_in; c++)
     {
-        for (int c = 0; c < channel_in; c++)
+        Vector map = image.block(hw_in * c, 0, hw_in, 1); // c-th channel map
+        for (int i = 0; i < hw_out; i++)
         {
-            Vector map = image.block(hw_in * c, 0, hw_in, 1); // c-th channel map
-            for (int i = 0; i < hw_out; i++)
+            int step_h = i / width_out;
+            int step_w = i % width_out;
+            int start_idx = step_h * width_in * stride + step_w * stride; // left-top idx of window
+            for (int j = 0; j < hw_kernel; j++)
             {
-                int step_h = i / width_out;
-                int step_w = i % width_out;
-                int start_idx = step_h * width_in * stride + step_w * stride; // left-top idx of window
-                for (int j = 0; j < hw_kernel; j++)
+                int cur_col = start_idx % width_in + j % width_kernel - pad_w; // col after padding
+                int cur_row = start_idx / width_in + j / width_kernel - pad_h;
+                if (cur_col < 0 || cur_col >= width_in || cur_row < 0 ||
+                    cur_row >= height_in)
                 {
-                    int cur_col = start_idx % width_in + j % width_kernel - pad_w; // col after padding
-                    int cur_row = start_idx / width_in + j / width_kernel - pad_h;
-                    if (cur_col < 0 || cur_col >= width_in || cur_row < 0 ||
-                        cur_row >= height_in)
-                    {
-                        data_col(i, c * hw_kernel + j) = 0;
-                    }
-                    else
-                    {
-                        // int pick_idx = start_idx + (j / width_kernel) * width_in + j % width_kernel;
-                        int pick_idx = cur_row * width_in + cur_col;
-                        data_col(i, c * hw_kernel + j) = map(pick_idx); // pick which pixel
-                    }
+                    data_col(i, c * hw_kernel + j) = 0;
+                }
+                else
+                {
+                    // int pick_idx = start_idx + (j / width_kernel) * width_in + j % width_kernel;
+                    int pick_idx = cur_row * width_in + cur_col;
+                    data_col(i, c * hw_kernel + j) = map(pick_idx); // pick which pixel
                 }
             }
         }
     }
-    else
-    {
-        // ... allocate memory on the GPU and copy image data to GPU and data_col ...
-        float* d_image;
-        float* d_data_col;
-        CHECK(cudaMalloc(&d_image, sizeof(float) * image.size()));
-        CHECK(cudaMalloc(&d_data_col, sizeof(float) * data_col.size()));
-        CHECK(cudaMemcpy(d_image, image.data(), sizeof(float) * image.size(), cudaMemcpyHostToDevice));
-        // ... call the kernel ...
-        dim3 grid_size((hw_out * hw_kernel * channel_in + block_size - 1) / block_size);
-        im2col_kernel<<<grid_size, block_size>>>(d_image, d_data_col, height_in, width_in, channel_in, height_kernel, width_kernel, height_out, width_out, stride, pad_h, pad_w);
-        // ... copy data_col data back to CPU and deallocate GPU memory ...
-        CHECK(cudaMemcpy(data_col.data(), d_data_col, sizeof(float) * data_col.size(), cudaMemcpyDeviceToHost));
-        CHECK(cudaFree(d_image));
-        CHECK(cudaFree(d_data_col));
-    }
 }
 
-__global__ void conv_product_kernel(const float* data_col, const float* weight, float* result, int hw_out, int channel_out)
+__global__ void conv_product_kernel(const float* data_col, const float* weight, float* result, int width, int height, int channel_size)
 {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx < hw_out * channel_out) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < height && col < width)
+    {
         float sum = 0;
-        for (int i = 0; i < hw_out; i++) {
-            sum += data_col[idx * hw_out + i] * weight[i * channel_out + idx];
+        for (int i = 0; i < channel_size; i++)
+        {
+            sum += data_col[row * channel_size + i] * weight[i * width + col];
         }
-        result[idx] = sum;
+        result[row * width + col] = sum;
     }
 }
 
@@ -136,6 +87,7 @@ void Conv::forward(const Matrix &bottom)
             result = data_col * weight; // result: (hw_out, channel_out)
         else
         {
+            result.resize(height_out * width_out, channel_out);
             // Allocate memory on the GPU and copy data_col and weight data to GPU
             float* d_data_col;
             float* d_weight;
@@ -147,8 +99,13 @@ void Conv::forward(const Matrix &bottom)
             CHECK(cudaMemcpy(d_weight, weight.data(), sizeof(float) * weight.size(), cudaMemcpyHostToDevice));
 
             // Call the kernel
-            dim3 gridSize((channel_out * hw_out + blockSize.x - 1) / blockSize.x);
-            conv_product_kernel<<<gridSize, blockSize>>>(d_data_col, d_weight, d_result, hw_out, channel_out);
+            int height = height_out * width_out;
+            int width = channel_out;
+            int channel_size = channel_in * height_kernel * width_kernel;
+            dim3 grid_size((width - 1) / block_size.x + 1, (height - 1) / block_size.y + 1);
+            conv_product_kernel<<<grid_size, block_size>>>(d_data_col, d_weight, d_result, width, height, channel_size);
+            CHECK(cudaDeviceSynchronize());
+            CHECK(cudaGetLastError());
 
             // Copy result data back to CPU and deallocate GPU memory
             CHECK(cudaMemcpy(result.data(), d_result, sizeof(float) * result.size(), cudaMemcpyDeviceToHost));

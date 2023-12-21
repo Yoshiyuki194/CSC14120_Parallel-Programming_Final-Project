@@ -12,6 +12,6 @@ aux_source_directory(. DIR_SRCS)
 add_subdirectory(src)
 # 指定生成目标 
 
-cuda_add_executable(demo demo.cc)
+cuda_add_executable(demo demo.cu)
 # 添加链接库
 target_link_libraries(demo MiniDNNLib)
