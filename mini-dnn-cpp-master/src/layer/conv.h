@@ -1,55 +1,74 @@
 #ifndef SRC_LAYER_CONV_H_
 #define SRC_LAYER_CONV_H_
+#define CHECK(call)\
+{\
+	const cudaError_t error = call;\
+	if (error != cudaSuccess)\
+	{\
+		fprintf(stderr, "Error: %s:%d, ", __FILE__, __LINE__);\
+		fprintf(stderr, "code: %d, reason: %s\n", error,\
+				cudaGetErrorString(error));\
+		exit(EXIT_FAILURE);\
+	}\
+}
 
 #include <vector>
+#include <cuda_runtime.h>
 #include "../layer.h"
 
-class Conv: public Layer {
- private:
-  const int dim_in;
-  int dim_out;
+class Conv : public Layer
+{
+private:
+    bool gpu = false;
+    dim3 block_size = dim3(32, 32); // default
 
-  int channel_in;
-  int height_in;
-  int width_in;
-  int channel_out;
-  int height_kernel;
-  int width_kernel;
-  int stride;
-  int pad_h;
-  int pad_w;
+    const int dim_in;
+    int dim_out;
 
-  int height_out;
-  int width_out;
+    int channel_in;
+    int height_in;
+    int width_in;
+    int channel_out;
+    int height_kernel;
+    int width_kernel;
+    int stride;
+    int pad_h;
+    int pad_w;
 
-  Matrix weight;  // weight param, size=channel_in*h_kernel*w_kernel*channel_out
-  Vector bias;  // bias param, size = channel_out
-  Matrix grad_weight;  // gradient w.r.t weight
-  Vector grad_bias;  // gradient w.r.t bias
+    int height_out;
+    int width_out;
 
-  std::vector<Matrix> data_cols;
+    Matrix weight;      // weight param, size=channel_in*h_kernel*w_kernel*channel_out
+    Vector bias;        // bias param, size = channel_out
+    Matrix grad_weight; // gradient w.r.t weight
+    Vector grad_bias;   // gradient w.r.t bias
 
-  void init();
+    std::vector<Matrix> data_cols;
 
- public:
-  Conv(int channel_in, int height_in, int width_in, int channel_out,
-       int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
-       int pad_h = 0) :
-       dim_in(channel_in * height_in * width_in),
-       channel_in(channel_in), height_in(height_in), width_in(width_in),
-       channel_out(channel_out), height_kernel(height_kernel),
-       width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h)
-  { init(); }
+    void init();
 
-  void forward(const Matrix& bottom);
-  void backward(const Matrix& bottom, const Matrix& grad_top);
-  void update(Optimizer& opt);
-  void im2col(const Vector& image, Matrix& data_col);
-  void col2im(const Matrix& data_col, Vector& image);
-  int output_dim() { return dim_out; }
-  std::vector<float> get_parameters() const;
-  std::vector<float> get_derivatives() const;
-  void set_parameters(const std::vector<float>& param);
+public:
+    Conv(int channel_in, int height_in, int width_in, int channel_out,
+         int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
+         int pad_h = 0, int gpu = false, int block_size_x = 32, int block_size_y = 32) : 
+            dim_in(channel_in * height_in * width_in),
+            channel_in(channel_in), height_in(height_in), width_in(width_in),
+            channel_out(channel_out), height_kernel(height_kernel),
+            width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h),
+            gpu(gpu), block_size(dim3(block_size_x, block_size_y))
+{
+        init();
+    }
+
+    void forward(const Matrix &bottom);
+    void backward(const Matrix &bottom, const Matrix &grad_top);
+    void update(Optimizer &opt);
+    void im2col(const Vector &image, Matrix &data_col);
+    void col2im(const Matrix &data_col, Vector &image);
+    int output_dim() { return dim_out; }
+    std::vector<float> get_parameters() const;
+    std::vector<float> get_derivatives() const;
+    void set_parameters(const std::vector<float> &param);
 };
 
-#endif  // SRC_LAYER_CONV_H_
+#endif // SRC_LAYER_CONV_H_
