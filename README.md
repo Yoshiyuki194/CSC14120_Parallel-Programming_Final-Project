@@ -27,6 +27,7 @@ mkdir build
 cd build
 cmake .. -Wno-dev
 make
+./demo
 ```
 ## References
 1. Kirk, D. & Hwu, W. (2016). Programming Massively Parallel Processors: A Hands-on Approach (3rd ed.). Morgan Kaufmann. Chapter 16, Application case study—machine learning.
