@@ -32,7 +32,7 @@ int main()
 
     std::cout << "Fashion-mnist training samples: " << n_train << std::endl;
     std::cout << "Fashion-mnist test samples: " << dataset.test_labels.cols() << std::endl;
-    std::cout << "--------------------------------------------" << std::endl;
+    std::cout << "-----------------------------------------" << std::endl;
 
     float acc = 0;
     std::cout << "CPU version:" << std::endl;
@@ -64,7 +64,7 @@ int main()
     Loss *cpu_loss = new CrossEntropy;
     cpu_dnn.add_loss(cpu_loss);
     // Load parameters
-    cpu_dnn.load_parameters("../model/params.txt");
+    cpu_dnn.load_parameters("../model/params-10eps.txt");
     GpuTimer timer;
     timer.Start();
     cpu_dnn.forward(dataset.test_data);
@@ -103,13 +103,51 @@ int main()
     Loss *gpu_loss = new CrossEntropy;
     gpu_dnn.add_loss(gpu_loss);
     // Load parameters
-    gpu_dnn.load_parameters("../model/params.txt");
+    gpu_dnn.load_parameters("../model/params-10eps.txt");
     timer.Start();
     gpu_dnn.forward(dataset.test_data);
     timer.Stop();
     std::cout << "GPU forward time: " << timer.Elapsed() / 1000 << " secs" << std::endl;
     acc = compute_accuracy(gpu_dnn.output(), dataset.test_labels);
     std::cout << "GPU accuracy: " << acc << std::endl;
+    std::cout << "-----------------------------------------" << std::endl;
+
+    std::cout << "Multi-stream version:" << std::endl;
+    Network multi_dnn;
+    Layer *multi_conv1 = new Conv_gpu(1, 28, 28, 6, 5, 5, 1, 0, 0, 2);
+    Layer *multi_pool1 = new MaxPooling(6, 24, 24, 2, 2, 2);
+    Layer *multi_conv2 = new Conv_gpu(6, 12, 12, 16, 5, 5, 1, 0, 0, 2);
+    Layer *multi_pool2 = new MaxPooling(16, 8, 8, 2, 2, 2);
+    Layer *multi_fc1 = new FullyConnected(multi_pool2->output_dim(), 120);
+    Layer *multi_fc2 = new FullyConnected(120, 84);
+    Layer *multi_fc3 = new FullyConnected(84, 10);
+    Layer *multi_relu_conv1 = new ReLU;
+    Layer *multi_relu_conv2 = new ReLU;
+    Layer *multi_relu_fc1 = new ReLU;
+    Layer *multi_relu_fc2 = new ReLU;
+    Layer *multi_softmax = new Softmax;
+    multi_dnn.add_layer(multi_conv1);
+    multi_dnn.add_layer(multi_relu_conv1);
+    multi_dnn.add_layer(multi_pool1);
+    multi_dnn.add_layer(multi_conv2);
+    multi_dnn.add_layer(multi_relu_conv2);
+    multi_dnn.add_layer(multi_pool2);
+    multi_dnn.add_layer(multi_fc1);
+    multi_dnn.add_layer(multi_relu_fc1);
+    multi_dnn.add_layer(multi_fc2);
+    multi_dnn.add_layer(multi_relu_fc2);
+    multi_dnn.add_layer(multi_fc3);
+    multi_dnn.add_layer(multi_softmax);
+    Loss *multi_loss = new CrossEntropy;
+    multi_dnn.add_loss(multi_loss);
+    // Load parameters
+    multi_dnn.load_parameters("../model/params-10eps.txt");
+    timer.Start();
+    multi_dnn.forward(dataset.test_data);
+    timer.Stop();
+    std::cout << "Multi-stream forward time: " << timer.Elapsed() / 1000 << " secs" << std::endl;
+    acc = compute_accuracy(multi_dnn.output(), dataset.test_labels);
+    std::cout << "Multi-stream accuracy: " << acc << std::endl;
     std::cout << "-----------------------------------------" << std::endl;
 
     return 0;
