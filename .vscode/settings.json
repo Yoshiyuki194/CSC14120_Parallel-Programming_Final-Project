@@ -76,5 +76,6 @@
         "stack": "cpp",
         "type_traits": "cpp",
         "algorithm": "cpp"
-    }
+    },
+    "python.analysis.autoImportCompletions": true
 }

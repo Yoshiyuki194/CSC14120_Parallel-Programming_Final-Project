@@ -31,5 +31,5 @@ make
 ```
 ## References
 1. Kirk, D. & Hwu, W. (2016). Programming Massively Parallel Processors: A Hands-on Approach (3rd ed.). Morgan Kaufmann. Chapter 16, Application case study—machine learning.
-2. Amidi, Afshine and Shervine. “CS 230 - Convolutional Neural Networks Cheatsheet.” Stanford University,[https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks]
+2. Amidi, Afshine and Shervine. “CS 230 - Convolutional Neural Networks Cheatsheet.” Stanford University,[CS 230 - Convolutional Neural Networks Cheatsheet](https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks)
 3. dProgrammer lopez. (2019). C++ Convolutional Neural Network Tutorial 2019 [YouTube playlist]. YouTube. Retrieved January 2, 2024, from https://youtube.com/playlist?list=PL3MCKCM5GS4UGRk9wUD5HaNKTwm71fNZx
