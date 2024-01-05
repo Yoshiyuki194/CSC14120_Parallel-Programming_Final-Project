@@ -4,7 +4,7 @@
 
 // Convolution forward kernel: Naive implementation
 __global__ void conv_forward_kernel(const float *in, float *out, const float *weight,
-                                    const int channel_int, const int channel_out,
+                                    const int channel_in, const int channel_out,
                                     const int height_in, const int width_in, const int kernel_width)
 {
     const int height_out = height_in - kernel_width + 1;
@@ -26,7 +26,7 @@ __global__ void conv_forward_kernel(const float *in, float *out, const float *we
     int hw_in = height_in * width_in;
     int hw_out = height_out * width_out;
 
-    for (int i = 0; i < channel_int; i++)
+    for (int i = 0; i < channel_in; i++)
     {
         for (int j = 0; j < kernel_width; j++)
         {
@@ -47,7 +47,7 @@ __global__ void conv_forward_kernel(const float *in, float *out, const float *we
 // Convolution forward kernel: Shared memory implementation
 // TODO: Create a seprarate file for shared memory implementation
 __global__ void conv_forward_kernel_1(const float *in, float *out, const float *weight,
-                                      const int channel_int, const int channel_out,
+                                      const int channel_in, const int channel_out,
                                       const int height_in, const int width_in, const int kernel_width)
 {
     int bx = blockIdx.x;
@@ -57,9 +57,9 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
     int sample_idx = blockIdx.z;
     int height_out = height_in - kernel_width + 1;
     int width_out = width_in - kernel_width + 1;
-    int size_in = channel_int * height_in * width_in;
+    int size_in = channel_in * height_in * width_in;
     int size_out = channel_out * height_out * width_out;
-    int size_weight = channel_out * channel_int * kernel_width * kernel_width;
+    int size_weight = channel_out * channel_in * kernel_width * kernel_width;
 
     __shared__ float shared_in[TILE_WIDTH][TILE_WIDTH];
     __shared__ float shared_weight[TILE_WIDTH][TILE_WIDTH];
@@ -73,7 +73,7 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
 
     if (row_in < height_in && col_in < width_in)
     {
-        shared_in[ty][tx] = in[sample_idx * channel_int * height_in * width_in + row_in * width_in + col_in];
+        shared_in[ty][tx] = in[sample_idx * channel_in * height_in * width_in + row_in * width_in + col_in];
     }
     else
     {
@@ -82,7 +82,7 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
 
     if (row_weight < kernel_width && col_weight < kernel_width)
     {
-        shared_weight[ty][tx] = weight[sample_idx * channel_out * channel_int * kernel_width * kernel_width + row_weight * kernel_width + col_weight];
+        shared_weight[ty][tx] = weight[sample_idx * channel_out * channel_in * kernel_width * kernel_width + row_weight * kernel_width + col_weight];
     }
     else
     {
@@ -94,7 +94,7 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
     if (row < height_out && col < width_out)
     {
         float sum = 0;
-        for (int i = 0; i < channel_int; i++)
+        for (int i = 0; i < channel_in; i++)
         {
             for (int j = 0; j < kernel_width; j++)
             {
