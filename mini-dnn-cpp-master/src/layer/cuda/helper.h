@@ -61,7 +61,6 @@ class cuda_helper
 private:
     cudaDeviceProp prop;
 public:
-    char* concatenate(const char* a, const char* b);
     void print_device_info();
 };
 
