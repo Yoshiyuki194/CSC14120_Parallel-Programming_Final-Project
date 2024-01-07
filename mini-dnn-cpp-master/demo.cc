@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
         std::cerr << "Invalid command-line arguments." << std::endl;
         return 1;
     }
-    std::cout << "Use GPU: " << (bool)use_gpu << std::endl;
+    std::cout << "Use GPU: " << (use_gpu ? "Yes" : "No") << std::endl;
     std::cout << "Number of streams: " << n_streams << std::endl;
     std::cout << "Version: " << version_names[version] << std::endl;
     std::cout << "-----------------------------------------" << std::endl;
