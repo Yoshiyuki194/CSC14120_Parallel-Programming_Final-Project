@@ -39,15 +39,17 @@ private:
     std::vector<Matrix> data_cols; // store data_col for each sample
 
     int n_streams;
+    int version;
     void init();
 
 public:
     Conv_gpu(int channel_in, int height_in, int width_in, int channel_out,
          int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
-         int pad_h = 0, int n_streams = 1) : dim_in(channel_in * height_in * width_in),
+         int pad_h = 0, int n_streams = 1, int version = 0) : dim_in(channel_in * height_in * width_in),
                           channel_in(channel_in), height_in(height_in), width_in(width_in),
                           channel_out(channel_out), height_kernel(height_kernel),
-                          width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h), n_streams(n_streams)
+                          width_kernel(width_kernel), stride(stride), pad_w(pad_w), pad_h(pad_h), 
+                          n_streams(n_streams), version(version)
     {
         init();
     }

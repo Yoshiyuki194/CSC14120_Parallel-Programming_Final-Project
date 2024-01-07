@@ -36,7 +36,7 @@ private:
 public:
     Conv(int channel_in, int height_in, int width_in, int channel_out,
          int height_kernel, int width_kernel, int stride = 1, int pad_w = 0,
-         int pad_h = 0, int gpu = false, int block_size_x = 32, int block_size_y = 32) : 
+         int pad_h = 0) : 
             dim_in(channel_in * height_in * width_in),
             channel_in(channel_in), height_in(height_in), width_in(width_in),
             channel_out(channel_out), height_kernel(height_kernel),

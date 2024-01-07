@@ -69,13 +69,7 @@ void Conv_gpu::forward(const Matrix &bottom)
     float* w = (float*)weight.data();
     
     cuda_manager executor;
-    executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams);
-
-    // Add bias
-    // for (int i = 0; i < n_sample; i++) 
-    //     for (int j = 0; j < channel_out; j++) 
-    //         for (int k = 0; k < height_out * width_out; k++) 
-    //             out[(j * height_out * width_out + k) * n_sample + i] += bias[j];
+    executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams, version);
 }
 
 
