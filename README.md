@@ -1,5 +1,6 @@
 # CSC14120_Parallel-Programming_Final-Project
 In this final project, students will be implementing and optimizing the forward-pass of a convolutional layer using CUDA.
+
 We will use [mini-dnn-cpp](https://github.com/iamhankai/mini-dnn-cpp) (Mini-DNN) framework as a starting point to implement the LeNet-5. This framework is a C++ demo of deep neural networks implementation, purely used C++ language with the support of Eigen library for matrix and vector representation.
 
 ## Tasks
@@ -31,5 +32,5 @@ make
 ```
 ## References
 1. Kirk, D. & Hwu, W. (2016). Programming Massively Parallel Processors: A Hands-on Approach (3rd ed.). Morgan Kaufmann. Chapter 16, Application case study—machine learning.
-2. Amidi, Afshine and Shervine. “CS 230 - Convolutional Neural Networks Cheatsheet.” Stanford University,[CS 230 - Convolutional Neural Networks Cheatsheet](https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks)
+2. Amidi, Afshine and Shervine. “CS 230 - Convolutional Neural Networks Cheatsheet.” Stanford University, [CS 230 - Convolutional Neural Networks Cheatsheet](https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks)
 3. dProgrammer lopez. (2019). C++ Convolutional Neural Network Tutorial 2019 [YouTube playlist]. YouTube. Retrieved January 2, 2024, from https://youtube.com/playlist?list=PL3MCKCM5GS4UGRk9wUD5HaNKTwm71fNZx
