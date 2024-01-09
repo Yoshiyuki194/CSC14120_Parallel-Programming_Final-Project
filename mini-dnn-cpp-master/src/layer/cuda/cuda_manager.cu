@@ -60,8 +60,9 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
     int row = (blockIdx.y / width_grid) * TILE_WIDTH + threadIdx.y;
     int col = (blockIdx.y % width_grid) * TILE_WIDTH + threadIdx.x;
 
-    __shared__ float in_shared[TILE_WIDTH][TILE_WIDTH];
-    __shared__ float weight_shared[TILE_WIDTH][TILE_WIDTH];
+    extern __shared__ float shmem[];
+    float* in_shared = &shmem[0];
+    float* weight_shared = &shmem[(TILE_WIDTH + kernel_width - 1) * (TILE_WIDTH + kernel_width - 1)];
 
     float accum = 0;
 
@@ -79,18 +80,66 @@ __global__ void conv_forward_kernel_1(const float *in, float *out, const float *
             {
                 int pixel_row = row + j;
                 int pixel_col = col + k;
-                in_shared[threadIdx.y][threadIdx.x] = in[sample_idx * channel_in * hw_in + i * hw_in +
+                in_shared[(threadIdx.y + j) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + k] = in[sample_idx * channel_in * hw_in + i * hw_in +
                                                          pixel_row * width_in + pixel_col];
-                weight_shared[threadIdx.y][threadIdx.x] = weight[map_idx * channel_in * kernel_width * kernel_width +
+                weight_shared[j * kernel_width + k] = weight[map_idx * channel_in * kernel_width * kernel_width +
                                                                  i * kernel_width * kernel_width + j * kernel_width + k];
                 __syncthreads();
-                accum += in_shared[threadIdx.y][threadIdx.x] * weight_shared[threadIdx.y][threadIdx.x];
+                accum += in_shared[(threadIdx.y + j) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + k] * weight_shared[j * kernel_width + k];
                 __syncthreads();
             }
         }
     }
     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
+
+// Convolution forward kernel: Shared memory implementation
+// __global__ void conv_forward_kernel_1(const float *in, float *out, const float *weight,
+//                                       const int channel_in, const int channel_out,
+//                                       const int height_in, const int width_in, const int kernel_width)
+// {
+//     const int height_out = height_in - kernel_width + 1;
+//     const int width_out = width_in - kernel_width + 1;
+
+//     int height_grid = (height_out - 1) / TILE_WIDTH + 1;
+//     int width_grid = (width_out - 1) / TILE_WIDTH + 1;
+
+//     int sample_idx = blockIdx.z;
+//     int map_idx = blockIdx.x;
+//     int row = (blockIdx.y / width_grid) * TILE_WIDTH + threadIdx.y;
+//     int col = (blockIdx.y % width_grid) * TILE_WIDTH + threadIdx.x;
+
+//     __shared__ float in_shared[TILE_WIDTH][TILE_WIDTH];
+//     __shared__ float weight_shared[TILE_WIDTH][TILE_WIDTH];
+
+//     float accum = 0;
+
+//     if (row >= height_out || col >= width_out)
+//         return;
+
+//     int hw_in = height_in * width_in;
+//     int hw_out = height_out * width_out;
+
+//     for (int i = 0; i < channel_in; i++)
+//     {
+//         for (int j = 0; j < kernel_width; j++)
+//         {
+//             for (int k = 0; k < kernel_width; k++)
+//             {
+//                 int pixel_row = row + j;
+//                 int pixel_col = col + k;
+//                 in_shared[threadIdx.y][threadIdx.x] = in[sample_idx * channel_in * hw_in + i * hw_in +
+//                                                          pixel_row * width_in + pixel_col];
+//                 weight_shared[threadIdx.y][threadIdx.x] = weight[map_idx * channel_in * kernel_width * kernel_width +
+//                                                                  i * kernel_width * kernel_width + j * kernel_width + k];
+//                 __syncthreads();
+//                 accum += in_shared[threadIdx.y][threadIdx.x] * weight_shared[threadIdx.y][threadIdx.x];
+//                 __syncthreads();
+//             }
+//         }
+//     }
+//     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
+// }
 
 __host__ void cuda_manager::conv_forward(const float *in, float *out, const float *weight,
                                          const int n_samples, const int channel_in, const int channel_out,
@@ -146,7 +195,11 @@ __host__ void cuda_manager::conv_forward(const float *in, float *out, const floa
         if (version == 0)
             conv_forward_kernel<<<dimGrid, dimBlock, 0, streams[i]>>>(d_in + offset * size_in_per_sample, d_out + offset * size_out_per_sample, d_weight, channel_in, channel_out, height_in, width_in, kernel_width);
         else if (version == 1 || version == 3)
-            conv_forward_kernel_1<<<dimGrid, dimBlock, 0, streams[i]>>>(d_in + offset * size_in_per_sample, d_out + offset * size_out_per_sample, d_weight, channel_in, channel_out, height_in, width_in, kernel_width);
+            {
+                size_t shmem_size = sizeof(float) * ((TILE_WIDTH + kernel_width - 1) * (TILE_WIDTH + kernel_width - 1) + kernel_width * kernel_width);
+                conv_forward_kernel_1<<<dimGrid, dimBlock, shmem_size, streams[i]>>>(d_in + offset * size_in_per_sample, d_out + offset * size_out_per_sample, d_weight, channel_in, channel_out, height_in, width_in, kernel_width);
+                //conv_forward_kernel_1<<<dimGrid, dimBlock, 0, streams[i]>>>(d_in + offset * size_in_per_sample, d_out + offset * size_out_per_sample, d_weight, channel_in, channel_out, height_in, width_in, kernel_width);
+            }
         CHECK(cudaMemcpyAsync(out + offset * size_out_per_sample, d_out + offset * size_out_per_sample, size_out_per_stream * sizeof(float), cudaMemcpyDeviceToHost, streams[i]));
     }
     // Destroy device streams
