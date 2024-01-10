@@ -13,14 +13,12 @@
 #include "src/layer/sigmoid.h"
 #include "src/layer/softmax.h"
 #include "src/loss.h"
-#include "src/loss/mse_loss.h"
 #include "src/loss/cross_entropy_loss.h"
 #include "src/mnist.h"
 #include "src/network.h"
 #include "src/optimizer.h"
 #include "src/optimizer/sgd.h"
-#include "src/layer/cuda/helper.h"
-#include "src/layer/cuda/cuda_manager.h"
+#include "src/cuda_manager.h"
 
 int main(int argc, char* argv[])
 {

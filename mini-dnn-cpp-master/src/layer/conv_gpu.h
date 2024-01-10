@@ -3,8 +3,7 @@
 #pragma once
 
 #include "../layer.h"
-#include "./cuda/cuda_manager.h"
-#include "./cuda/helper.h"
+#include "../cuda_manager.h"
 #include <math.h>
 #include <iostream>
 #include <vector>
@@ -57,7 +56,6 @@ public:
     void forward(const Matrix &bottom);
     void backward(const Matrix &bottom, const Matrix &grad_top);
     void update(Optimizer &opt);
-    void im2col(const Vector &image, Matrix &data_col);
     void col2im(const Matrix &data_col, Vector &image);
     int output_dim() { return dim_out; }
     std::vector<float> get_parameters() const;

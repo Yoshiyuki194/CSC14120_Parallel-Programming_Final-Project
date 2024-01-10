@@ -20,44 +20,6 @@ void Conv_gpu::init()
     // std::cout << weight.colwise().sum() + bias.transpose() << std::endl;
 }
 
-// im2col, used for bottom
-// image size: Vector (height_in * width_in * channel_in)
-// data_col size: Matrix (hw_out, hw_kernel * channel_in)
-void Conv_gpu::im2col(const Vector &image, Matrix &data_col)
-{
-    int hw_in = height_in * width_in;
-    int hw_kernel = height_kernel * width_kernel;
-    int hw_out = height_out * width_out;
-    // im2col
-    data_col.resize(hw_out, hw_kernel * channel_in);
-    for (int c = 0; c < channel_in; c++)
-    {
-        Vector map = image.block(hw_in * c, 0, hw_in, 1); // c-th channel map
-        for (int i = 0; i < hw_out; i++)
-        {
-            int step_h = i / width_out;
-            int step_w = i % width_out;
-            int start_idx = step_h * width_in * stride + step_w * stride; // left-top idx of window
-            for (int j = 0; j < hw_kernel; j++)
-            {
-                int cur_col = start_idx % width_in + j % width_kernel - pad_w; // col after padding
-                int cur_row = start_idx / width_in + j / width_kernel - pad_h;
-                if (cur_col < 0 || cur_col >= width_in || cur_row < 0 ||
-                    cur_row >= height_in)
-                {
-                    data_col(i, c * hw_kernel + j) = 0;
-                }
-                else
-                {
-                    // int pick_idx = start_idx + (j / width_kernel) * width_in + j % width_kernel;
-                    int pick_idx = cur_row * width_in + cur_col;
-                    data_col(i, c * hw_kernel + j) = map(pick_idx); // pick which pixel
-                }
-            }
-        }
-    }
-}
-
 void Conv_gpu::forward(const Matrix &bottom)
 {
     int n_sample = bottom.cols();

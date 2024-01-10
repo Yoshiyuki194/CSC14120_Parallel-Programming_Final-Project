@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <vector>
 #include "./utils.h"
+#include "./cuda_manager.h"
 #include "./optimizer.h"
 
 class Layer

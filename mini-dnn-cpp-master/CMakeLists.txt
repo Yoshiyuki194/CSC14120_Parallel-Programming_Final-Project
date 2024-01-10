@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 3.0)
 project (myproject)
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-12.3/bin/nvcc") #Specify for local GPU
 enable_language(CUDA)
 find_package(CUDA REQUIRED)	# Find the CUDA libraries
 include_directories(${CUDA_INCLUDE_DIRS})	# Specify the CUDA include directories for the project
+
 
 include_directories ("${PROJECT_SOURCE_DIR}/third_party/eigen")
 # 查找当前目录下的所有源文件
