@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "../layer.h"
+#include "./cuda_functions/device.h"
 
 class Conv : public Layer
 {

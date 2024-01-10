@@ -22,7 +22,7 @@
 #include "src/network.h"
 #include "src/optimizer.h"
 #include "src/optimizer/sgd.h"
-#include "src/layer/cuda/helper.h"
+#include "src/layer/cuda_functions/device.h"
 #include "src/layer/conv_gpu.h"
 
 int main()
@@ -114,6 +114,6 @@ int main()
         std::cout << epoch + 1 << "-th epoch, test acc: " << acc << std::endl;
         std::cout << std::endl;
     }
-    dnn.save_parameters("../model/params.txt");
+    dnn.save_parameters("../model/params-lenet5.txt");
     return 0;
 }

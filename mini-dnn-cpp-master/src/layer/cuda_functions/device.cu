@@ -1,6 +1,6 @@
-#include "helper.h"
+#include "device.h"
 
-void cuda_helper::print_device_info()
+void Device::print_device_info()
 {
 	CHECK(cudaGetDeviceProperties(&prop, 0));
 	printf("**********GPU Device Properties**********\n");

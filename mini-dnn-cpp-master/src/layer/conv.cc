@@ -58,6 +58,8 @@ void Conv::im2col(const Vector &image, Matrix &data_col)
 
 void Conv::forward(const Matrix &bottom)
 {
+    GpuTimer timer;
+    timer.Start();
     int n_sample = bottom.cols();
     top.resize(height_out * width_out * channel_out, n_sample);
     data_cols.resize(n_sample);
@@ -72,6 +74,11 @@ void Conv::forward(const Matrix &bottom)
         result.rowwise() += bias.transpose();
         top.col(i) = Eigen::Map<Vector>(result.data(), result.size());
     }
+    timer.Stop();
+    if (channel_out == 6)
+        std::cout << "C1 layer time: " << timer.Elapsed() / 1000 << " s" << std::endl;
+    else
+        std::cout << "C3 layer time: " << timer.Elapsed() / 1000 << " s" << std::endl;
 }
 
 // col2im, used for grad_bottom

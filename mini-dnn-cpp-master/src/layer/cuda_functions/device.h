@@ -1,5 +1,5 @@
-#ifndef SRC_LAYER_CUDA_HELPER_H_
-#define SRC_LAYER_CUDA_HELPER_H_
+#ifndef SRC_LAYER_DEVICE_H_
+#define SRC_LAYER_DEVICE_H_
 #pragma once
 
 #include <stdio.h>
@@ -56,7 +56,7 @@ public:
     }
 };
 
-class cuda_helper
+class Device
 {
 private:
     cudaDeviceProp prop;
@@ -64,4 +64,4 @@ public:
     void print_device_info();
 };
 
-#endif /* SRC_LAYER_CUDA_HELPER_H_ */
+#endif /* SRC_LAYER_DEVICE_H_ */

@@ -2,9 +2,7 @@
 #include <math.h>
 #include <iostream>
 
-#define BLOCK_SIZE 32
-
-void Conv_gpu::init()
+void ConvGPU::init()
 {
     height_out = (1 + (height_in - height_kernel + 2 * pad_h) / stride);
     width_out = (1 + (width_in - width_kernel + 2 * pad_w) / stride);
@@ -16,64 +14,33 @@ void Conv_gpu::init()
     grad_bias.resize(channel_out);
     set_normal_random(weight.data(), weight.size(), 0, 0.01);
     set_normal_random(bias.data(), bias.size(), 0, 0.01);
-    // std::cout << weight.colwise().sum() << std::endl;
-    // std::cout << weight.colwise().sum() + bias.transpose() << std::endl;
 }
 
-// im2col, used for bottom
-// image size: Vector (height_in * width_in * channel_in)
-// data_col size: Matrix (hw_out, hw_kernel * channel_in)
-void Conv_gpu::im2col(const Vector &image, Matrix &data_col)
+void ConvGPU::forward(const Matrix &bottom)
 {
-    int hw_in = height_in * width_in;
-    int hw_kernel = height_kernel * width_kernel;
-    int hw_out = height_out * width_out;
-    // im2col
-    data_col.resize(hw_out, hw_kernel * channel_in);
-    for (int c = 0; c < channel_in; c++)
-    {
-        Vector map = image.block(hw_in * c, 0, hw_in, 1); // c-th channel map
-        for (int i = 0; i < hw_out; i++)
-        {
-            int step_h = i / width_out;
-            int step_w = i % width_out;
-            int start_idx = step_h * width_in * stride + step_w * stride; // left-top idx of window
-            for (int j = 0; j < hw_kernel; j++)
-            {
-                int cur_col = start_idx % width_in + j % width_kernel - pad_w; // col after padding
-                int cur_row = start_idx / width_in + j / width_kernel - pad_h;
-                if (cur_col < 0 || cur_col >= width_in || cur_row < 0 ||
-                    cur_row >= height_in)
-                {
-                    data_col(i, c * hw_kernel + j) = 0;
-                }
-                else
-                {
-                    // int pick_idx = start_idx + (j / width_kernel) * width_in + j % width_kernel;
-                    int pick_idx = cur_row * width_in + cur_col;
-                    data_col(i, c * hw_kernel + j) = map(pick_idx); // pick which pixel
-                }
-            }
-        }
-    }
+    int n_sample = bottom.cols(); // number of samples
+    top.resize(height_out * width_out * channel_out, n_sample); // output size
+
+    float *in = (float *)bottom.data(); // input
+    float *out = (float *)top.data(); // output
+    float *w = (float *)weight.data(); // weight
+
+    CudaExecutor executor;
+    executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams, use_smem);
 }
 
-void Conv_gpu::forward(const Matrix &bottom)
+void ConvGPU::update(Optimizer &opt)
 {
-    int n_sample = bottom.cols();
-    data_cols.resize(n_sample);
-    top.resize(height_out * width_out * channel_out, n_sample);
-    
-    float* in = (float*)bottom.data();
-    float* out = (float*)top.data();
-    float* w = (float*)weight.data();
-    
-    cuda_manager executor;
-    executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams, version);
+    Vector::AlignedMapType weight_vec(weight.data(), weight.size());
+    Vector::AlignedMapType bias_vec(bias.data(), bias.size());
+    Vector::ConstAlignedMapType grad_weight_vec(grad_weight.data(), grad_weight.size());
+    Vector::ConstAlignedMapType grad_bias_vec(grad_bias.data(), grad_bias.size());
+
+    opt.update(weight_vec, grad_weight_vec);
+    opt.update(bias_vec, grad_bias_vec);
 }
 
-
-void Conv_gpu::col2im(const Matrix &data_col, Vector &image)
+void ConvGPU::col2im(const Matrix &data_col, Vector &image)
 {
     int hw_in = height_in * width_in;
     int hw_kernel = height_kernel * width_kernel;
@@ -108,7 +75,7 @@ void Conv_gpu::col2im(const Matrix &data_col, Vector &image)
     }
 }
 
-void Conv_gpu::backward(const Matrix &bottom, const Matrix &grad_top)
+void ConvGPU::backward(const Matrix &bottom, const Matrix &grad_top)
 {
     int n_sample = bottom.cols();
     grad_weight.setZero();
@@ -134,18 +101,7 @@ void Conv_gpu::backward(const Matrix &bottom, const Matrix &grad_top)
     }
 }
 
-void Conv_gpu::update(Optimizer &opt)
-{
-    Vector::AlignedMapType weight_vec(weight.data(), weight.size());
-    Vector::AlignedMapType bias_vec(bias.data(), bias.size());
-    Vector::ConstAlignedMapType grad_weight_vec(grad_weight.data(), grad_weight.size());
-    Vector::ConstAlignedMapType grad_bias_vec(grad_bias.data(), grad_bias.size());
-
-    opt.update(weight_vec, grad_weight_vec);
-    opt.update(bias_vec, grad_bias_vec);
-}
-
-std::vector<float> Conv_gpu::get_parameters() const
+std::vector<float> ConvGPU::get_parameters() const
 {
     std::vector<float> res(weight.size() + bias.size());
     // Copy the data of weights and bias to a long vector
@@ -154,7 +110,7 @@ std::vector<float> Conv_gpu::get_parameters() const
     return res;
 }
 
-void Conv_gpu::set_parameters(const std::vector<float> &param)
+void ConvGPU::set_parameters(const std::vector<float> &param)
 {
     if (static_cast<int>(param.size()) != weight.size() + bias.size())
         throw std::invalid_argument("Parameter size does not match");
@@ -162,7 +118,7 @@ void Conv_gpu::set_parameters(const std::vector<float> &param)
     std::copy(param.begin() + weight.size(), param.end(), bias.data());
 }
 
-std::vector<float> Conv_gpu::get_derivatives() const
+std::vector<float> ConvGPU::get_derivatives() const
 {
     std::vector<float> res(grad_weight.size() + grad_bias.size());
     // Copy the data of weights and bias to a long vector
