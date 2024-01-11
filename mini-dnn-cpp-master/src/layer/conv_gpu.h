@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "../layer.h"
-#include "../cuda_executor.h"
+#include "../kernel_launcher.h"
 #include "./cuda_functions/device.h"
 
 class ConvGPU : public Layer

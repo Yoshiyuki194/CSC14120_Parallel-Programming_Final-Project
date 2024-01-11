@@ -1,12 +1,12 @@
-#ifndef SRC_CUDA_EXECUTOR_H_
-#define SRC_CUDA_EXECUTOR_H_
+#ifndef SRC_KERNEL_LAUNCHER_H_
+#define SRC_KERNEL_LAUNCHER_H_
 #pragma once
 
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include "./layer/cuda_functions/device.h"
 
-class CudaExecutor
+class KernelLauncher
 {
 public:
     void conv_forward(const float *in, float *out, const float *weight, const int n_samples,
@@ -36,4 +36,4 @@ public:
                       const int height_in, const int width_in, const int kernel_width, const int n_streams = 1);
 };
 
-#endif // SRC_CUDA_EXECUTOR_H_
+#endif // SRC_KERNEL_LAUNCHER_H_

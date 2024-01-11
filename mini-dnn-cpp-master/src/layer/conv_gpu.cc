@@ -25,8 +25,8 @@ void ConvGPU::forward(const Matrix &bottom)
     float *out = (float *)top.data(); // output
     float *w = (float *)weight.data(); // weight
 
-    CudaExecutor executor;
-    executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams, use_smem);
+    KernelLauncher cuda_executor;
+    cuda_executor.conv_forward(in, out, w, n_sample, channel_in, channel_out, height_in, width_in, height_kernel, n_streams, use_smem);
 }
 
 void ConvGPU::update(Optimizer &opt)

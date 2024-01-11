@@ -1,4 +1,4 @@
-#include "../../cuda_executor.h"
+#include "../../kernel_launcher.h"
 #include "device.h"
 
 #define TILE_WIDTH 16
@@ -45,7 +45,7 @@ __global__ void conv_forward_kernel(const float *in, float *out, const float *we
     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
 
-void CudaExecutor::basic_forward(const float *in, float *out, const float *weight,
+void KernelLauncher::basic_forward(const float *in, float *out, const float *weight,
                                          const int n_samples, const int channel_in, const int channel_out,
                                          const int height_in, const int width_in, const int kernel_width, const int n_streams)
 {

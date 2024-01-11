@@ -127,17 +127,17 @@ void Network::check_gradient(const Matrix &input, const Matrix &target,
 
 void Network::save_parameters(std::string filename)
 {
-    std::vector<std::vector<float>> param = this->get_parameters();
-    std::ofstream fout(filename);
-    if (!fout.is_open())
+    std::vector<std::vector<float>> param = this->get_parameters(); // get parameters
+    std::ofstream fo(filename);
+    if (!fo.is_open())
         throw std::runtime_error("Cannot open file " + filename);
-    for (int i = 0; i < param.size(); i++)
+    for (int i = 0; i < param.size(); i++) // for each layer
     {
-        for (int j = 0; j < param[i].size(); j++)
-            fout << param[i][j] << " ";
-        fout << std::endl;
+        for (int j = 0; j < param[i].size(); j++) // for each parameter
+            fo << param[i][j] << " ";
+        fo << std::endl;
     }
-    fout.close();
+    fo.close();
 }
 
 void Network::load_parameters(std::string filename)
@@ -147,12 +147,12 @@ void Network::load_parameters(std::string filename)
         throw std::runtime_error("Cannot open file " + filename);
     std::vector<std::vector<float>> param;
     std::string line;
-    while (std::getline(fin, line))
+    while (std::getline(fin, line)) // for each line
     {
         std::vector<float> row;
         std::stringstream ss(line);
         float val;
-        while (ss >> val)
+        while (ss >> val) // for each value
             row.push_back(val);
         param.push_back(row);
     }
