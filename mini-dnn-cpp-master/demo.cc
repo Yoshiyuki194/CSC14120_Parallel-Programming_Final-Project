@@ -87,9 +87,9 @@ int main(int argc, char* argv[])
         cuda.print_device_info();
         std::cout << version_names[version] << " GPU version:" << std::endl;
         Network gpu_dnn;
-        Layer *gpu_conv1 = new ConvGPU(1, 28, 28, 6, 5, 5);
+        Layer *gpu_conv1 = new ConvGPU(1, 28, 28, 6, 5, 5, 1, 0, 0, n_streams, use_smem);
         Layer *gpu_pool1 = new MaxPooling(6, 24, 24, 2, 2, 2);
-        Layer *gpu_conv2 = new ConvGPU(6, 12, 12, 16, 5, 5);
+        Layer *gpu_conv2 = new ConvGPU(6, 12, 12, 16, 5, 5, 1, 0, 0, n_streams, use_smem);
         Layer *gpu_pool2 = new MaxPooling(16, 8, 8, 2, 2, 2);
         Layer *gpu_fc1 = new FullyConnected(gpu_pool2->output_dim(), 120);
         Layer *gpu_fc2 = new FullyConnected(120, 84);
