@@ -1,3 +1,11 @@
+/*
+ * CNN demo for MNIST dataset
+ * Author: Kai Han (kaihana@163.com)
+ * Details in https://github.com/iamhankai/mini-dnn-cpp
+ * Adapted by: Fit@HCMUS student team
+ * Purpose: This project was adapted by our student team from Fit@HCMUS as a starter project to practice CUDA programming, solely for education.
+ * Copyright 2018 Kai Han
+ */
 #include <Eigen/Dense>
 #include <algorithm>
 #include <iostream>

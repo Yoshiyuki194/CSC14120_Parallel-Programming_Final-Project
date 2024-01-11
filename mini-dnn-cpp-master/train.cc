@@ -2,6 +2,8 @@
  * CNN demo for MNIST dataset
  * Author: Kai Han (kaihana@163.com)
  * Details in https://github.com/iamhankai/mini-dnn-cpp
+ * Adapted by: Fit@HCMUS student team
+ * Purpose: This project was adapted by our student team from Fit@HCMUS as a starter project to practice CUDA programming, solely for education.
  * Copyright 2018 Kai Han
  */
 #include <Eigen/Dense>
@@ -70,8 +72,8 @@ int main()
     const int batch_size = 128;
     for (int epoch = 0; epoch < n_epoch; epoch++)
     {
-        // GpuTimer timer;
-        // timer.Start();
+        GpuTimer timer;
+        timer.Start();
         shuffle_data(dataset.train_data, dataset.train_labels);
         for (int start_idx = 0; start_idx < n_train; start_idx += batch_size)
         {
@@ -97,21 +99,19 @@ int main()
             // optimize
             dnn.update(opt);
         }
-        // timer.Stop();
+        timer.Stop();
 
-        // long long elapsed = (long long)timer.Elapsed(); // get elapsed time in milliseconds
-        // int hours = (int)(elapsed / (1000 * 60 * 60));
-        // int mins = (int)((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-        // double secs = ((elapsed % (1000 * 60)) / 1000.0);
+        long long elapsed = (long long)timer.Elapsed(); // get elapsed time in milliseconds
+        int hours = (int)(elapsed / (1000 * 60 * 60));
+        int mins = (int)((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+        double secs = ((elapsed % (1000 * 60)) / 1000.0);
 
-        // printf("Training Time: %dh %dm %.4fs\n", hours, mins, secs);
-
-        // printf("Training Time: %.3f ms\n", timer.Elapsed());
+        printf("Training Time: %dh %dm %.4fs\n", hours, mins, secs);
         //  test
         dnn.forward(dataset.test_data);
         float acc = compute_accuracy(dnn.output(), dataset.test_labels);
         std::cout << std::endl;
-        std::cout << epoch + 1 << "-th epoch, test acc: " << acc << std::endl;
+        std::cout << epoch << "-th epoch, test acc: " << acc << std::endl;
         std::cout << std::endl;
     }
     dnn.save_parameters("../model/params-lenet5.txt");

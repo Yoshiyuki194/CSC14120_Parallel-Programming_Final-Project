@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <cuda_runtime.h>
-
+// Macro for checking cuda errors following a cuda launch or api call
 #define CHECK(call)\
 {\
 	const cudaError_t error = call;\
@@ -17,7 +17,7 @@
 	}\
 }
 
-
+// Class for timing cuda events and calculating elapsed time
 class GpuTimer
 {
 private:
@@ -56,6 +56,7 @@ public:
     }
 };
 
+// Class for getting device information
 class Device
 {
 private:
