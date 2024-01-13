@@ -70,7 +70,7 @@ public:
      */
     void conv_forward(const float *in, float *out, const float *weight, const int n_samples,
                       const int channel_in, const int channel_out,
-                      const int height_in, const int width_in, const int kernel_width, const int n_streams = 1, const int use_smem = 0);
+                      const int height_in, const int width_in, const int kernel_width, const int n_streams = 1, const int use_smem = 0)
     {
         GpuTimer timer;
         timer.Start();
