@@ -41,8 +41,10 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
         {
             for (int j = 0; j < TILE_WIDTH + kernel_width - 1; j++)
             {
-                if (row + i < height_in && col + j < width_in)
-                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = in[sample_idx * channel_in * hw_in + c * hw_in + (row + i) * width_in + col + j];
+                int h = row + i;
+                int w = col + j;
+                if (h < height_in && w < width_in)
+                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = in[sample_idx * channel_in * hw_in + c * hw_in + h * width_in + w];
                 else
                     in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = 0;
             }
@@ -60,7 +62,6 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
 
         __syncthreads();
     }
-
 
     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
