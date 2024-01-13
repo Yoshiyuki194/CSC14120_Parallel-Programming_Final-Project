@@ -1,7 +1,7 @@
 #include "../../kernel_launcher.h"
 #include "device.h"
 
-#define TILE_WIDTH 16
+#define TILE_WIDTH 32
 
 // Convolution forward kernel: Shared memory implementation
 __global__ void smem_conv_forward_kernel(const float *in, float *out, const float *weight,
@@ -31,24 +31,37 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
     int hw_in = height_in * width_in;
     int hw_out = height_out * width_out;
 
-    for (int i = 0; i < channel_in; i++)
+    for (int c = 0; c < channel_in; c++)
     {
-        for (int j = 0; j < kernel_width; j++)
+        if (threadIdx.x < kernel_width && threadIdx.y < kernel_width)
+            weight_shared[threadIdx.y * kernel_width + threadIdx.x] = weight[map_idx * channel_in * kernel_width * kernel_width + c * kernel_width * kernel_width + threadIdx.y * kernel_width + threadIdx.x];
+        __syncthreads();
+     
+        for (int i = 0; i < TILE_WIDTH + kernel_width - 1; i++)
         {
-            for (int k = 0; k < kernel_width; k++)
+            for (int j = 0; j < TILE_WIDTH + kernel_width - 1; j++)
             {
-                int pixel_row = row + j;
-                int pixel_col = col + k;
-                in_shared[(threadIdx.y + j) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + k] = in[sample_idx * channel_in * hw_in + i * hw_in +
-                                                         pixel_row * width_in + pixel_col];
-                weight_shared[j * kernel_width + k] = weight[map_idx * channel_in * kernel_width * kernel_width +
-                                                                 i * kernel_width * kernel_width + j * kernel_width + k];
-                __syncthreads();
-                accum += in_shared[(threadIdx.y + j) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + k] * weight_shared[j * kernel_width + k];
-                __syncthreads();
+                if (row + i < height_in && col + j < width_in)
+                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = in[sample_idx * channel_in * hw_in + c * hw_in + (row + i) * width_in + col + j];
+                else
+                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = 0;
             }
         }
+
+        __syncthreads();
+
+        for (int i = 0; i < kernel_width; i++)
+        {
+            for (int j = 0; j < kernel_width; j++)
+            {
+                accum += in_shared[(threadIdx.y + i) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + j] * weight_shared[i * kernel_width + j];
+            }
+        }
+
+        __syncthreads();
     }
+
+
     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
 

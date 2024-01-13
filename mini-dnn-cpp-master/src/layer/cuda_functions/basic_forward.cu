@@ -1,7 +1,7 @@
 #include "../../kernel_launcher.h"
 #include "device.h"
 
-#define TILE_WIDTH 16
+#define TILE_WIDTH 32
 
 // Convolution forward kernel: Naive implementation
 __global__ void conv_forward_kernel(const float *in, float *out, const float *weight,
