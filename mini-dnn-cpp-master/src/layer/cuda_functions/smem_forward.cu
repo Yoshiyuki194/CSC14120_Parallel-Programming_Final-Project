@@ -16,8 +16,10 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
 
     int sample_idx = blockIdx.x;
     int map_idx = blockIdx.y;
-    int row = (blockIdx.z / width_grid) * TILE_WIDTH + threadIdx.y;
-    int col = (blockIdx.z % width_grid) * TILE_WIDTH + threadIdx.x;
+    int row_base = (blockIdx.z / width_grid) * TILE_WIDTH;
+    int col_base = (blockIdx.z % width_grid) * TILE_WIDTH;
+    int row = row_base + threadIdx.y;
+    int col = col_base + threadIdx.x;
 
     extern __shared__ float shmem[];
     float* in_shared = &shmem[0];
@@ -33,36 +35,24 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
 
     for (int c = 0; c < channel_in; c++)
     {
-        if (threadIdx.x < kernel_width && threadIdx.y < kernel_width)
+        // Load weight into shared memory
+        if (threadIdx.y < kernel_width && threadIdx.x < kernel_width)
             weight_shared[threadIdx.y * kernel_width + threadIdx.x] = weight[map_idx * channel_in * kernel_width * kernel_width + c * kernel_width * kernel_width + threadIdx.y * kernel_width + threadIdx.x];
         __syncthreads();
-     
-        for (int i = 0; i < TILE_WIDTH + kernel_width - 1; i++)
-        {
-            for (int j = 0; j < TILE_WIDTH + kernel_width - 1; j++)
-            {
-                int h = row + i;
-                int w = col + j;
-                if (h < height_in && w < width_in)
-                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = in[sample_idx * channel_in * hw_in + c * hw_in + h * width_in + w];
-                else
-                    in_shared[i * (TILE_WIDTH + kernel_width - 1) + j] = 0;
-            }
-        }
-
+        // Load input into shared memory
+        for (int i = row; i < row_base + kernel_width - 1; i += TILE_WIDTH)
+            for (int j = col; j < col_base + kernel_width - 1; j += TILE_WIDTH)
+                if (i < height_in && j < width_in)
+                    in_shared[(i - row_base + threadIdx.y) * (TILE_WIDTH + kernel_width - 1) + (j - col_base + threadIdx.x)] = in[sample_idx * channel_in * hw_in + c * hw_in + i * width_in + j];
         __syncthreads();
-
-        for (int i = 0; i < kernel_width; i++)
-        {
-            for (int j = 0; j < kernel_width; j++)
-            {
-                accum += in_shared[(threadIdx.y + i) * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + j] * weight_shared[i * kernel_width + j];
-            }
-        }
-
+        // Compute convolution
+        for (int p = 0; p < kernel_width; p++)
+            for (int q = 0; q < kernel_width; q++)
+                if (row + p < height_out && col + q < width_out)
+                    accum += in_shared[threadIdx.y * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + p * (TILE_WIDTH + kernel_width - 1) + q] * weight_shared[p * kernel_width + q];
         __syncthreads();
     }
-
+    // Store output
     out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
 
