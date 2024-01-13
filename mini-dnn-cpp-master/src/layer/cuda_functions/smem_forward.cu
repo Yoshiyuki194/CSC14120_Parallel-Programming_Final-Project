@@ -25,11 +25,6 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
     float* in_shared = &shmem[0];
     float* weight_shared = &shmem[(TILE_WIDTH + kernel_width - 1) * (TILE_WIDTH + kernel_width - 1)];
 
-    float accum = 0;
-
-    if (row >= height_out || col >= width_out)
-        return;
-
     int hw_in = height_in * width_in;
     int hw_out = height_out * width_out;
 
@@ -40,20 +35,24 @@ __global__ void smem_conv_forward_kernel(const float *in, float *out, const floa
             weight_shared[threadIdx.y * kernel_width + threadIdx.x] = weight[map_idx * channel_in * kernel_width * kernel_width + c * kernel_width * kernel_width + threadIdx.y * kernel_width + threadIdx.x];
         __syncthreads();
         // Load input into shared memory
-        for (int i = row; i < row_base + kernel_width - 1; i += TILE_WIDTH)
-            for (int j = col; j < col_base + kernel_width - 1; j += TILE_WIDTH)
+        for (int i = row; i < row_base + TILE_WIDTH + kernel_width - 1; i += TILE_WIDTH)
+            for (int j = col; j < col_base + TILE_WIDTH + kernel_width - 1; j += TILE_WIDTH)
                 if (i < height_in && j < width_in)
-                    in_shared[(i - row_base + threadIdx.y) * (TILE_WIDTH + kernel_width - 1) + (j - col_base + threadIdx.x)] = in[sample_idx * channel_in * hw_in + c * hw_in + i * width_in + j];
+                    in_shared[(i - row_base) * (TILE_WIDTH + kernel_width - 1) + (j - col_base)] = in[sample_idx * channel_in * hw_in + c * hw_in + i * width_in + j];
+                else
+                    in_shared[(i - row_base) * (TILE_WIDTH + kernel_width - 1) + (j - col_base)] = 0;
         __syncthreads();
         // Compute convolution
-        for (int p = 0; p < kernel_width; p++)
-            for (int q = 0; q < kernel_width; q++)
-                if (row + p < height_out && col + q < width_out)
-                    accum += in_shared[threadIdx.y * (TILE_WIDTH + kernel_width - 1) + threadIdx.x + p * (TILE_WIDTH + kernel_width - 1) + q] * weight_shared[p * kernel_width + q];
+        if (row < height_out && col < width_out)
+        {
+            float accum = 0;
+            for (int p = 0; p < kernel_width; p++)
+                for (int q = 0; q < kernel_width; q++)
+                    accum += in_shared[(p + row) * (TILE_WIDTH + kernel_width - 1) + col + q] * weight_shared[p * kernel_width + q];
+            out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] += accum;
+        }
         __syncthreads();
     }
-    // Store output
-    out[sample_idx * channel_out * hw_out + map_idx * hw_out + row * width_out + col] = accum;
 }
 
 void KernelLauncher::smem_forward(const float *in, float *out, const float *weight,
