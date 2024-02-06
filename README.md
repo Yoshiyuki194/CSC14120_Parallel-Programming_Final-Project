@@ -22,7 +22,7 @@ LeNet-5 and run on Fashion MNIST.
   - Fixed point (FP16) arithmetic.
   - Using Streams to overlap computation with data transfer.
   - An advanced matrix multiplication algorithm.
-## How to run the project in a CUDA-enabled environment
+## How to run the project in a CUDA-supported environment
 ```
 mkdir build
 cd build
